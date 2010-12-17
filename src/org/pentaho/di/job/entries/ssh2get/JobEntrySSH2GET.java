@@ -712,8 +712,16 @@ public class JobEntrySSH2GET extends JobEntryBase implements Cloneable, JobEntry
 		String realproxyUserName=environmentSubstitute(httpproxyusername);
 		String realProxyPassword=environmentSubstitute(httpProxyPassword);
 		// Key file
-		String realKeyFilename=environmentSubstitute(keyFilename);
-		String relKeyFilepass=environmentSubstitute(keyFilePass);
+		String realKeyFilename;
+		String relKeyFilepass;
+		try {
+			realKeyFilename=KettleVFS.getFilename(KettleVFS.getFileObject(environmentSubstitute(keyFilename)));
+			relKeyFilepass=environmentSubstitute(keyFilePass);
+		} catch (Exception e) {
+			logError(BaseMessages.getString(PKG, "JobSSH2GET.Log.KeyFileMissing", e.getMessage()));
+			result.setNrErrors(1);
+			return result;
+		}
 		// target files
 		String realLocalDirectory=environmentSubstitute(localDirectory);
 		String realwildcard=environmentSubstitute(wildcard);
@@ -845,7 +853,7 @@ public class JobEntrySSH2GET extends JobEntryBase implements Cloneable, JobEntry
 					logError(BaseMessages.getString(PKG, "JobSSH2GET.Log.AuthenticationFailed"));
 				else
 				{
-					if(log.isBasic()) logBasic(BaseMessages.getString(PKG, "JobSSH2GET.Log.Connected",serverName,userName));
+					if(log.isBasic()) logBasic(BaseMessages.getString(PKG, "JobSSH2GET.Log.Connected",realServerName,realUserName));
 					
 					client = new SFTPv3Client(conn);
 					
@@ -1089,7 +1097,7 @@ public class JobEntrySSH2GET extends JobEntryBase implements Cloneable, JobEntry
 		}
 		else if (afterFtpPut.equals("move_file"))
 		{
-			String DestinationFullFilename=destinationFolder+Const.FILE_SEPARATOR+filename;
+			String DestinationFullFilename=destinationFolder+Const.FILE_SEPARATOR + new File(filename).getName();
 			try
 			{
 				sftpClient.mv(filename, DestinationFullFilename);
@@ -1220,7 +1228,7 @@ public class JobEntrySSH2GET extends JobEntryBase implements Cloneable, JobEntry
 		try 
 		{
            
-			transferFile = new File(targetLocation);
+			transferFile = new File(KettleVFS.getFilename(KettleVFS.getFileObject(targetLocation)));
 			
 			if ((onlyGettingNewFiles == false) ||
 	                 (onlyGettingNewFiles == true) && !FileExists(transferFile.getAbsolutePath()))
